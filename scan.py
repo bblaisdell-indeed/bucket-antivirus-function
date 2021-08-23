@@ -45,9 +45,11 @@ from common import get_timestamp
 
 def event_object(event, event_source="s3"):
 
-    # SNS events are slightly different
+    # SNS and SQS events are slightly different
     if event_source.upper() == "SNS":
         event = json.loads(event["Records"][0]["Sns"]["Message"])
+    elif event_source.upper() == "SQS":
+        event = json.loads(event["Records"][0]["body"])
 
     # Break down the record
     records = event["Records"]
