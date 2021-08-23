@@ -105,7 +105,9 @@ the table below for reference.
 | EVENT_SOURCE | The source of antivirus scan event "S3" or "SNS" (optional) | S3 | No |
 | S3_ENDPOINT | The Endpoint to use when interacting wth S3 | None | No |
 | SNS_ENDPOINT | The Endpoint to use when interacting wth SNS | None | No |
+| STS_ENDPOINT | The Endpoint to use when interacting wth STS | None | No |
 | LAMBDA_ENDPOINT | The Endpoint to use when interacting wth Lambda | None | No |
+| METRICS_TAGS | A JSON serialized list of strings to be added as extra tags to emitted Datadog metrics | None | No |
 
 ## S3 Bucket Policy Examples
 

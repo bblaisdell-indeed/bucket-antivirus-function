@@ -20,13 +20,14 @@ from common import AV_STATUS_CLEAN
 from common import AV_STATUS_INFECTED
 
 
-def send(env, bucket, key, status):
+def send(sts_client, env, metrics_tags, bucket, key, status):
     if "DATADOG_API_KEY" in os.environ:
         datadog.initialize()  # by default uses DATADOG_API_KEY
 
         result_metric_name = "unknown"
 
-        metric_tags = ["env:%s" % env, "bucket:%s" % bucket, "object:%s" % key]
+        aws_account = sts_client.get_caller_identity().get('Account')
+        metric_tags = list({"env:%s" % env, "bucket:%s" % bucket, "object:%s" % key, "aws_account:%s" % aws_account}.union(metrics_tags))
 
         if status == AV_STATUS_CLEAN:
             result_metric_name = "clean"

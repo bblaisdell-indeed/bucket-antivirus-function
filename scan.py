@@ -39,6 +39,7 @@ from common import AV_STATUS_SNS_PUBLISH_INFECTED
 from common import AV_TIMESTAMP_METADATA
 from common import SNS_ENDPOINT
 from common import S3_ENDPOINT
+from common import STS_ENDPOINT
 from common import create_dir
 from common import get_timestamp
 
@@ -206,10 +207,21 @@ def lambda_handler(event, context):
     s3 = boto3.resource("s3", endpoint_url=S3_ENDPOINT)
     s3_client = boto3.client("s3", endpoint_url=S3_ENDPOINT)
     sns_client = boto3.client("sns", endpoint_url=SNS_ENDPOINT)
+    sts_client = boto3.client("sts", endpoint_url=STS_ENDPOINT)
 
     # Get some environment variables
     ENV = os.getenv("ENV", "")
     EVENT_SOURCE = os.getenv("EVENT_SOURCE", "S3")
+    METRICS_TAGS = []
+    if "METRICS_TAGS" in os.environ:
+        try:
+            METRICS_TAGS = json.loads(os.getenv("METRICS_TAGS"))
+            assert isinstance(METRICS_TAGS, list)
+            for tag in METRICS_TAGS:
+                assert isinstance(tag, str)
+        except:
+            print("Error parsing METRICS_TAGS")
+            METRICS_TAGS = []
 
     start_time = get_timestamp()
     print("Script starting at %s\n" % (start_time))
@@ -261,7 +273,7 @@ def lambda_handler(event, context):
         )
 
     metrics.send(
-        env=ENV, bucket=s3_object.bucket_name, key=s3_object.key, status=scan_result
+        sts_client=sts_client, env=ENV, metrics_tags=METRICS_TAGS, bucket=s3_object.bucket_name, key=s3_object.key, status=scan_result
     )
     # Delete downloaded file to free up room on re-usable lambda function container
     try:
