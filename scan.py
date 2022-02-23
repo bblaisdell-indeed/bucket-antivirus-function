@@ -37,6 +37,8 @@ from common import AV_STATUS_SNS_ARN
 from common import AV_STATUS_SNS_PUBLISH_CLEAN
 from common import AV_STATUS_SNS_PUBLISH_INFECTED
 from common import AV_TIMESTAMP_METADATA
+from common import AV_QUARANTINE_PREFIX
+from common import AV_QUARANTINE_BUCKET
 from common import SNS_ENDPOINT
 from common import S3_ENDPOINT
 from common import STS_ENDPOINT
@@ -117,6 +119,24 @@ def delete_s3_object(s3_object):
         )
     else:
         print("Infected file deleted: %s.%s" % (s3_object.bucket_name, s3_object.key))
+
+
+def move_s3_object(s3_object, quarantine_bucket, quarantine_prefix):
+    target_bucket = quarantine_bucket or s3_object.bucket_name
+    target_key = (quarantine_prefix or '') + s3_object.key
+    source_uri = f"s3://{s3_object.bucket_name}/{s3_object.key}"
+    target_uri = f"s3://{target_bucket}/{target_key}"
+    try:
+        s3.Object(target_bucket, target_key).copy_from(
+            CopySource=f'{s3_object.bucket_name}/{s3_object.key}',
+            TaggingDirective='COPY',
+            MetadataDirective='COPY',
+        )
+        s3_object.delete()
+    except Exception as e:
+        raise Exception(f"Failed to move infected file from {source_uri} to {target_uri}") from e
+    else:
+        print(f"Infected file moved from {source_uri} to {target_uri}")
 
 
 def set_av_metadata(s3_object, scan_result, scan_signature, timestamp):
@@ -230,6 +250,9 @@ def lambda_handler(event, context):
     if str_to_bool(AV_PROCESS_ORIGINAL_VERSION_ONLY):
         verify_s3_object_version(s3, s3_object)
 
+    if AV_QUARANTINE_PREFIX and not AV_QUARANTINE_BUCKET and s3_object.key.startswith(AV_QUARANTINE_PREFIX):
+        print(f"Not scanning object s3://{s3_object.bucket_name}/{s3_object.key} under quarantine prefix")
+
     # Publish the start time of the scan
     if AV_SCAN_START_SNS_ARN not in [None, ""]:
         start_scan_time = get_timestamp()
@@ -282,6 +305,8 @@ def lambda_handler(event, context):
         pass
     if str_to_bool(AV_DELETE_INFECTED_FILES) and scan_result == AV_STATUS_INFECTED:
         delete_s3_object(s3_object)
+    elif AV_QUARANTINE_BUCKET or AV_QUARANTINE_PREFIX:
+        move_s3_object(s3_object, AV_QUARANTINE_BUCKET, AV_QUARANTINE_PREFIX)
     stop_scan_time = get_timestamp()
     print("Script finished at %s\n" % stop_scan_time)
 
