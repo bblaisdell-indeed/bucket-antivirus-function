@@ -252,6 +252,7 @@ def lambda_handler(event, context):
 
     if AV_QUARANTINE_PREFIX and not AV_QUARANTINE_BUCKET and s3_object.key.startswith(AV_QUARANTINE_PREFIX):
         print(f"Not scanning object s3://{s3_object.bucket_name}/{s3_object.key} under quarantine prefix")
+        return
 
     # Publish the start time of the scan
     if AV_SCAN_START_SNS_ARN not in [None, ""]:
