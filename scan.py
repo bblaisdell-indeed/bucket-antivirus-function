@@ -134,7 +134,7 @@ def move_s3_object(s3_object, quarantine_bucket, quarantine_prefix):
         )
         s3_object.delete()
     except Exception as e:
-        raise Exception(f"Failed to move infected file from {source_uri} to {target_uri}") from e
+        raise Exception(f"Failed to move infected file from {source_uri} to {target_uri}:\n{e}") from e
     else:
         print(f"Infected file moved from {source_uri} to {target_uri}")
 
