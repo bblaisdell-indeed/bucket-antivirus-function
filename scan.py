@@ -121,7 +121,7 @@ def delete_s3_object(s3_object):
         print("Infected file deleted: %s.%s" % (s3_object.bucket_name, s3_object.key))
 
 
-def move_s3_object(s3_object, quarantine_bucket, quarantine_prefix):
+def move_s3_object(s3, s3_object, quarantine_bucket, quarantine_prefix):
     target_bucket = quarantine_bucket or s3_object.bucket_name
     target_key = (quarantine_prefix or '') + s3_object.key
     source_uri = f"s3://{s3_object.bucket_name}/{s3_object.key}"
@@ -306,7 +306,7 @@ def lambda_handler(event, context):
     if str_to_bool(AV_DELETE_INFECTED_FILES) and scan_result == AV_STATUS_INFECTED:
         delete_s3_object(s3_object)
     elif AV_QUARANTINE_BUCKET or AV_QUARANTINE_PREFIX:
-        move_s3_object(s3_object, AV_QUARANTINE_BUCKET, AV_QUARANTINE_PREFIX)
+        move_s3_object(s3, s3_object, AV_QUARANTINE_BUCKET, AV_QUARANTINE_PREFIX)
     stop_scan_time = get_timestamp()
     print("Script finished at %s\n" % stop_scan_time)
 
